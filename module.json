@@ -3,10 +3,10 @@
   "title": "Game-icons.net",
   "description": "3800+ Icons from game-icons-net to use in your game. Browse to the Data/modules/game-icons-net/ directory for all your icon needs.",
   "author": "thDM",
-  "version": "0.0.14",
+  "version": "0.0.18",
   "minimumCoreVersion": "0.5.5",
   "compatibleCoreVersion": "9",
   "url": "https://github.com/datdamnzotz/icons/blob/master/README-FoundryVTT.md",
   "manifest": "https://raw.githubusercontent.com/datdamnzotz/icons/master/module.json",
-  "download": "https://github.com/datdamnzotz/icons/releases/download/0.0.14/0.0.14.zip"
+  "download": "https://github.com/datdamnzotz/icons/releases/download/0.0.18/0.0.18.zip"
 }
