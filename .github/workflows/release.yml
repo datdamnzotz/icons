@@ -2,8 +2,9 @@ name: Push Build
 # For releases
 on:
   push:
-    branches:
-      - master
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - '*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
   build:
@@ -83,5 +84,4 @@ jobs:
           ref: 'master'
           add: module.json
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
