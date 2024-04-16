@@ -1,51 +1,41 @@
-# Game Icons
+# Foundry VTT - Game-icons.net All the icons for Foundry VTT 
 
-All SVG icons available on https://game-icons.net
+![All Downloads](https://img.shields.io/github/downloads/datdamnzotz/icons/total?style=for-the-badge)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/datdamnzotz/icons?style=for-the-badge)
 
-Also, this repository is used to [track](https://github.com/game-icons/icons/issues) requests made on Twitter or by email.
-You can add your own suggestions.
+Featuring:
 
-## Contribution
+All SVG icons available (3800+) on http://game-icons.net with white and black backgrounds.
 
-Contributions are welcomed! Have a look at this [document](https://github.com/game-icons/icons/blob/master/CONTRIBUTING.md) for help.
+![](.github/whitebackground.png?raw=true) ![](.github/blackbackground.png?raw=true)
 
-## Scripts
+# Automatic Installation - Setup -> Add-on Modules
 
-A few shell-scripts are at your disposal for various batch tasks.
+Search for 'Game-icons' under the filter packages and install.
 
-### colorize-svgs.sh
+![](.github/installmodule.png?raw=true)
 
-By default, all the provided icons in this repository have a white foreground on a black background.
-You may need them in other color combinations.
+# Manual Installation
 
-The `colorize-svgs.sh` script takes two optional arguments, the first one for the foreground color in hexadecimal,
-the second one for the background color also in hexadecimal or with the special value `transparent`.
+Copy the manifest url below and paste it into Manifest URL. Click install.
 
-```sh
-# red on green
-./colorize-svgs.sh '#f00' '#0f0'
+`https://raw.githubusercontent.com/datdamnzotz/icons/master/module.json`
 
-# blue on transparent
-./colorize-svgs.sh '#0011da' 'transparent'
-```
+![](.github/manifest.png?raw=true)
 
-The generated SVG files are created in the gitignored `_out` directory.
+### Or
 
-### rasterize-svgs.sh
+Download the latest release zip from `Releases` and unzip it someplace in your Data directory. e.g. Data/icons
 
-This script walks through the whole content of the `_out` directory and generates an optimized PNG file for every SVG file it encounters.
-So it means, that if you want to rasterize the default collection of white on black icons:
+# Use the module
 
-```sh
-# first copy the default SVG file to "_out" directory
-./colorize-svgs.sh
+No need to activate this module since it is just content.
 
-# then generate one PNG file for each SVG file
-./rasterize-svgs.sh
-```
+Just browse to the icon you want under your
 
-Depending on the power of your machine, the execution of the script may take a while. (no parallel executions yet).
+`modules/game=icons-net/(white)(black)backgrounds/` folder.
 
-## License
+![](.github/browse.png?raw=true)
 
-CC-BY
+
+Enjoy!
