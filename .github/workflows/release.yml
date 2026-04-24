@@ -1,87 +1,61 @@
-name: Push Build
-# For releases
+name: Release Build
+
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-    - '*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - '*'
 
 jobs:
   build:
-    name: Build
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v4
 
-      - name: Get next tag
-        id: get-version
-        uses: craig-day/compute-tag@v10
-        with:
-          github_token: ${{ github.token }}
-          version_scheme: semantic
-          version_type: patch
-  
-      - name: Get background icons 
-        run: | 
+      # Get tag directly from the push event
+      - name: Get tag
+        id: tag
+        run: echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Build assets
+        run: |
+          VERSION=${{ steps.tag.outputs.version }}
+
           wget https://game-icons.net/archives/svg/zip/ffffff/000000/game-icons.net.svg.zip
           7z e game-icons.net.svg.zip -aou -oblackbackground *.svg -r && rm game-icons.net.svg.zip
-          sed -i "s/viewBox=\"0 0 512 512\"/viewBox=\"0 0 512 512\" width=\"512\" height=\"512\"/g" blackbackground/*.svg
+          sed -i 's/viewBox="0 0 512 512"/viewBox="0 0 512 512" width="512" height="512"/g' blackbackground/*.svg
+
           wget https://game-icons.net/archives/svg/zip/000000/ffffff/game-icons.net.svg.zip
           7z e game-icons.net.svg.zip -aou -owhitebackground *.svg -r && rm game-icons.net.svg.zip
-          sed -i "s/viewBox=\"0 0 512 512\"/viewBox=\"0 0 512 512\" width=\"512\" height=\"512\"/g" whitebackground/*.svg
+          sed -i 's/viewBox="0 0 512 512"/viewBox="0 0 512 512" width="512" height="512"/g' whitebackground/*.svg
+
           wget https://game-icons.net/archives/svg/zip/000000/transparent/game-icons.net.svg.zip
           7z e game-icons.net.svg.zip -aou -oblacktransparent *.svg -r && rm game-icons.net.svg.zip
-          sed -i "s/viewBox=\"0 0 512 512\"/viewBox=\"0 0 512 512\" width=\"512\" height=\"512\"/g" blacktransparent/*.svg
+          sed -i 's/viewBox="0 0 512 512"/viewBox="0 0 512 512" width="512" height="512"/g' blacktransparent/*.svg
+
           wget https://game-icons.net/archives/svg/zip/ffffff/transparent/game-icons.net.svg.zip
           7z e game-icons.net.svg.zip -aou -owhitetransparent *.svg -r && rm game-icons.net.svg.zip
-          sed -i "s/viewBox=\"0 0 512 512\"/viewBox=\"0 0 512 512\" width=\"512\" height=\"512\"/g" whitetransparent/*.svg
-          7z a -tzip ${{ steps.get-version.outputs.next_tag  }}.zip black\* -mx0 -xr!.git -xr!.github
-          7z a -tzip ${{ steps.get-version.outputs.next_tag  }}.zip white\* -mx0 -xr!.git -xr!.github
-          7z a -tzip ${{ steps.get-version.outputs.next_tag  }}.zip README* -mx0 -xr!.git -xr!.github
-          7z a -tzip ${{ steps.get-version.outputs.next_tag  }}.zip license.txt -mx0 -xr!.git -xr!.github
-      - name: Update module.json
-        run: |
-          echo Version: ${{ steps.get-version.outputs.next_tag  }}
-          echo Download url: ${{ steps.upload-release-asset.browser_download_url }}
-          sed -i '/"version":/c\  "version": "${{ steps.get-version.outputs.next_tag }}",' module.json
-          sed -i '/"download":/c\  "download": "https://github.com/datdamnzotz/icons/releases/download/${{ steps.get-version.outputs.next_tag }}/${{ steps.get-version.outputs.next_tag  }}.zip"' module.json
-          cat module.json
+          sed -i 's/viewBox="0 0 512 512"/viewBox="0 0 512 512" width="512" height="512"/g' whitetransparent/*.svg
 
-      - name: Add module.json 
-        run: | 
-          7z a -tzip ${{ steps.get-version.outputs.next_tag  }}.zip module.json -mx0 -xr!.git -xr!.github
+          # Update module.json
+          sed -i "s/\"version\":.*/\"version\": \"${VERSION}\",/" module.json
+          sed -i "s|\"download\":.*|\"download\": \"https://github.com/datdamnzotz/icons/releases/download/${VERSION}/${VERSION}.zip\"|" module.json
 
-      - name: Create Release
-        id: create-release
-        uses: actions/create-release@v1
+          # Create zip
+          7z a -tzip ${VERSION}.zip black* white* README* license.txt module.json -mx0 -xr!.git -xr!.github
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.get-version.outputs.next_tag }}
-          release_name: ${{ steps.get-version.outputs.next_tag }}
-          body: >
-            Automatic release of ${{ steps.get-version.outputs.next_tag }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Upload Release Assets
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: ${{ steps.tag.outputs.version }}
+          files: ${{ steps.tag.outputs.version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./${{ steps.get-version.outputs.next_tag }}.zip
-          asset_name: ${{ steps.get-version.outputs.next_tag }}.zip
-          asset_content_type: application/zip
 
-      - name: Commit changes
-        uses: EndBug/add-and-commit@v4
+      - name: Commit updated module.json
+        uses: EndBug/add-and-commit@v9
         with:
-          author_name: Github Workflow
-          message: "Github Workflow"
-          ref: 'master'
+          message: "Update module.json for ${{ steps.tag.outputs.version }}"
           add: module.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
