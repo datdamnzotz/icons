@@ -57,5 +57,6 @@ jobs:
       - name: Commit updated module.json
         uses: EndBug/add-and-commit@v9
         with:
+          ref: master
           message: "Update module.json for ${{ steps.tag.outputs.version }}"
           add: module.json
