@@ -1,26 +1,71 @@
-name: Release Build
+name: Build & Release
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - master
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'Bump version to')"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Get tag directly from the push event
-      - name: Get tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+      - name: Setup git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
+      # 🔢 Get latest tag and bump patch version
+      - name: Compute next version
+        id: version
+        run: |
+          LAST_TAG=$(git tag --sort=-v:refname | head -n 1)
+
+          if [ -z "$LAST_TAG" ]; then
+            NEXT_VERSION="0.0.1"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_TAG"
+            PATCH=$((PATCH + 1))
+            NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+          fi
+
+          echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "Next version: $NEXT_VERSION"
+
+      # 📝 Update module.json
+      - name: Update module.json
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          sed -i "s/\"version\":.*/\"version\": \"${VERSION}\",/" module.json
+          sed -i "s|\"download\":.*|\"download\": \"https://github.com/datdamnzotz/icons/releases/download/${VERSION}/${VERSION}.zip\"|" module.json
+
+          cat module.json
+
+      # 💾 Commit version bump
+      - name: Commit version bump
+        run: |
+          git add module.json
+          git commit -m "Bump version to ${{ steps.version.outputs.version }}"
+          git push
+
+      # 🏷️ Create tag
+      - name: Create tag
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          git tag $VERSION
+          git push origin $VERSION
+
+      # 📦 Build assets
       - name: Build assets
         run: |
-          VERSION=${{ steps.tag.outputs.version }}
+          VERSION=${{ steps.version.outputs.version }}
 
           wget https://game-icons.net/archives/svg/zip/ffffff/000000/game-icons.net.svg.zip
           7z e game-icons.net.svg.zip -aou -oblackbackground *.svg -r && rm game-icons.net.svg.zip
@@ -38,25 +83,15 @@ jobs:
           7z e game-icons.net.svg.zip -aou -owhitetransparent *.svg -r && rm game-icons.net.svg.zip
           sed -i 's/viewBox="0 0 512 512"/viewBox="0 0 512 512" width="512" height="512"/g' whitetransparent/*.svg
 
-          # Update module.json
-          sed -i "s/\"version\":.*/\"version\": \"${VERSION}\",/" module.json
-          sed -i "s|\"download\":.*|\"download\": \"https://github.com/datdamnzotz/icons/releases/download/${VERSION}/${VERSION}.zip\"|" module.json
-
-          # Create zip
           7z a -tzip ${VERSION}.zip black* white* README* license.txt module.json -mx0 -xr!.git -xr!.github
 
-      - name: Create GitHub Release
+      # 🚀 Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.tag.outputs.version }}
-          name: ${{ steps.tag.outputs.version }}
-          files: ${{ steps.tag.outputs.version }}.zip
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          files: ${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Commit updated module.json
-        uses: EndBug/add-and-commit@v9
-        with:
-          ref: master
-          message: "Update module.json for ${{ steps.tag.outputs.version }}"
-          add: module.json
